@@ -46,7 +46,7 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding-bloc
 .controls label{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 input,select,button{font:inherit;color:inherit}
 input[type=text],select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
-#postal{width:9ch;font-family:var(--mono)}
+#postal{width:11ch;font-family:var(--mono)}
 button{cursor:pointer;border-radius:6px;border:1px solid var(--line);background:var(--bg);padding:6px 11px}
 button.primary{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 button:focus-visible,input:focus-visible,select:focus-visible,.school:focus-visible{outline:2px solid var(--zone);outline-offset:2px}
@@ -138,7 +138,7 @@ dl.stats dt{color:var(--muted)} dl.stats dd{margin:0;font-family:var(--mono);fon
   </div>
   <form class="controls" id="homeForm">
     <label for="postal">Home postal code</label>
-    <input type="text" id="postal" inputmode="numeric" maxlength="6" value="" placeholder="e.g. 530661" autocomplete="off">
+    <input type="text" id="postal" inputmode="numeric" maxlength="6" value="" placeholder="530661" autocomplete="off">
     <label for="walker">Walker</label>
     <select id="walker">
       <option value="4.0">Primary pupil · 4.0 km/h</option>
@@ -210,7 +210,7 @@ const $ = s => document.querySelector(s);
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const title = s => String(s).toLowerCase().replace(/\b([a-z])/g,m=>m.toUpperCase()).replace(/\b(Of|And|The)\b/g,m=>m.toLowerCase())
-  .replace(/'S\b/g,"'s").replace(/\b(Ite|Chij|Nus|Acs|Sji|Ri|Hci|Sota|Jc|Cpf|Hdb)\b/g,m=>m.toUpperCase()).replace(/^./,m=>m.toUpperCase());
+  .replace(/'S\b/g,"'s").replace(/\b(Ite|Chij|Nus|Acs|Sji|Ri|Hci|Sota|Jc|Cpf|Hdb|It|Mrt|Sch)\b/g,m=>m.toUpperCase()).replace(/^./,m=>m.toUpperCase());
 function hav(a,b,c,d){const R=6371,t=x=>x*Math.PI/180,dl=t(c-a),dn=t(d-b);const h=Math.sin(dl/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
 const angDiff=(a,b)=>{const d=Math.abs(((a-b)%360+360)%360);return d>180?360-d:d;};
 const axisDiff=(h,axis)=>Math.min(angDiff(h,axis),angDiff(h,axis+180));
@@ -261,8 +261,16 @@ const map = L.map("map",{zoomControl:true}).setView(home?[home.lat,home.lon]:[1.
 // OneMap only serves tiles over Singapore, so tiles are requested only inside these bounds.
 // Switch to the Esri grey basemap only if OneMap itself is unreachable (no tile ever loads).
 const SG_BOUNDS = L.latLngBounds([1.13,103.55],[1.48,104.10]);
-const base = L.tileLayer("https://www.onemap.gov.sg/maps/tiles/Grey/{z}/{x}/{y}.png",{maxZoom:19,minZoom:11,bounds:SG_BOUNDS,
-  attribution:'<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" style="height:14px;width:14px;vertical-align:middle" alt=""> OneMap © contributors | <a href="https://www.sla.gov.sg/">Singapore Land Authority</a> · Routing © OpenStreetMap contributors, Valhalla'}).addTo(map);
+const OM_ATTR='<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" style="height:14px;width:14px;vertical-align:middle" alt=""> OneMap © contributors | <a href="https://www.sla.gov.sg/">Singapore Land Authority</a> · Routing © OpenStreetMap contributors, Valhalla';
+const oneMap = style => L.tileLayer(`https://www.onemap.gov.sg/maps/tiles/${style}/{z}/{x}/{y}.png`,{maxZoom:19,minZoom:11,bounds:SG_BOUNDS,attribution:OM_ATTR});
+const base = oneMap("Default").addTo(map);           // detailed: block numbers, bus stops, MRT exits
+const baseLayers = {
+  "Detailed": base,
+  "Light": oneMap("Grey"),
+  "Satellite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,minZoom:11,
+    attribution:"Imagery © Esri, Maxar, Earthstar Geographics · Routing © OpenStreetMap contributors, Valhalla"})
+};
+L.control.layers(baseLayers,null,{position:"topright",collapsed:true}).addTo(map);
 let tilesOk=0, tilesBad=0, fellBack=false;
 base.on("tileload",()=>tilesOk++);
 base.on("tileerror",()=>{ tilesBad++; if(fellBack||tilesOk>0||tilesBad<6) return; fellBack=true; map.removeLayer(base);
@@ -577,8 +585,10 @@ function renderRoutes(s,routes,speed){
   const same=safest===fastest;
   routeLayer.clearLayers(); schoolPin(s);
   for(const r of routes){ if(r!==fastest&&r!==safest) L.polyline(r.pts,{color:css("--muted"),weight:3,opacity:.45}).addTo(routeLayer); }
-  if(!same) L.polyline(fastest.pts,{color:css("--fast"),weight:5,opacity:.85,dashArray:"8 8"}).bindTooltip("Fastest").addTo(routeLayer);
-  L.polyline(safest.pts,{color:css("--safe"),weight:7,opacity:.9}).bindTooltip(same?"Fastest and safest":"Safest").addTo(routeLayer);
+  if(!same){ L.polyline(fastest.pts,{color:"#fff",weight:9,opacity:.9,interactive:false}).addTo(routeLayer);
+    L.polyline(fastest.pts,{color:css("--fast"),weight:5,opacity:.95,dashArray:"8 8"}).bindTooltip("Fastest").addTo(routeLayer); }
+  L.polyline(safest.pts,{color:"#fff",weight:11,opacity:.9,interactive:false}).addTo(routeLayer);
+  L.polyline(safest.pts,{color:css("--safe"),weight:7,opacity:.95}).bindTooltip(same?"Fastest and safest":"Safest").addTo(routeLayer);
 
   const card=(r,kind)=>{const [bc,bl]=band(r.score);return `<div class="card ${kind}">
     <h3>${kind==="safe"?(same?"Fastest & safest":"Safest"):"Fastest"}</h3>
