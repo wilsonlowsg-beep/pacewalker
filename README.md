@@ -18,7 +18,7 @@ Always walk a new route with your child before relying on it.
 ## Data sources
 
 - Walking routes: [Valhalla](https://valhalla1.openstreetmap.de) (FOSSGIS), on OpenStreetMap data
-- Crossing details: OpenStreetMap via the Overpass API, © OpenStreetMap contributors (ODbL)
+- Crossing details: OpenStreetMap snapshot of 15 Oct 2026 (traffic-light, marked and unmarked crossings), built into the page, © OpenStreetMap contributors (ODbL)
 - Base map and address search: [OneMap](https://www.onemap.gov.sg), Singapore Land Authority
 - School list: Ministry of Education, via [data.gov.sg](https://data.gov.sg)
 - School Zones, Silver Zones, covered linkways, overhead bridges/underpasses and road crossings: [LTA DataMall](https://datamall.lta.gov.sg) static datasets (Apr 2025 / Sep 2026)
